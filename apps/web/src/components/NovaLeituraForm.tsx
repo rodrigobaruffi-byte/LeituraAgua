@@ -38,8 +38,8 @@ export function NovaLeituraForm({ onCriada }: Props) {
       setFoto(null);
       setData(hoje());
       onCriada();
-    } catch {
-      setErro('Não foi possível salvar a leitura.');
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não foi possível salvar a leitura.');
     } finally {
       setSalvando(false);
     }

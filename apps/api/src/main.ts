@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { json, urlencoded } from 'express';
 import { types } from 'pg';
 import { AppModule } from './app.module';
 
@@ -11,7 +12,12 @@ import { AppModule } from './app.module';
 types.setTypeParser(types.builtins.DATE, (value) => value);
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // bodyParser desligado para configurar um limite maior que o padrão
+  // do Express (100kb) — necessário porque fotoleitura chega como base64,
+  // que facilmente passa de alguns MB numa foto de câmera de celular.
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  app.use(json({ limit: '15mb' }));
+  app.use(urlencoded({ extended: true, limit: '15mb' }));
 
   app.enableCors();
   app.setGlobalPrefix('api');
