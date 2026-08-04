@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createLeitura } from '../api';
+import { DateInput } from './DateInput';
 import { FotoInput } from './FotoInput';
 
 function hoje() {
@@ -50,12 +51,7 @@ export function NovaLeituraForm({ onCriada }: Props) {
 
       <View style={styles.campo}>
         <Text style={styles.rotulo}>Data</Text>
-        <TextInput
-          style={styles.input}
-          value={data}
-          onChangeText={setData}
-          placeholder="AAAA-MM-DD"
-        />
+        <DateInput value={data} onChange={setData} />
       </View>
 
       <View style={styles.campo}>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createLeituraSanepar } from '../api';
+import { DateInput } from './DateInput';
 
 function hoje() {
   return new Date().toISOString().slice(0, 10);
@@ -43,12 +44,7 @@ export function SaneparForm({ onSalva }: Props) {
 
       <View style={styles.campo}>
         <Text style={styles.rotulo}>Data da leitura Sanepar</Text>
-        <TextInput
-          style={styles.input}
-          value={data}
-          onChangeText={setData}
-          placeholder="AAAA-MM-DD"
-        />
+        <DateInput value={data} onChange={setData} />
       </View>
 
       <View style={styles.campo}>

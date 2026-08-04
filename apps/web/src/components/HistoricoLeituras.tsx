@@ -23,7 +23,7 @@ export function HistoricoLeituras({ leituras, onExcluir }: Props) {
         <Text style={[styles.celula, styles.cabecalho, { flex: 1.2 }]}>Data</Text>
         <Text style={[styles.celula, styles.cabecalho]}>Leitura (m³)</Text>
         <Text style={[styles.celula, styles.cabecalho]}>Foto</Text>
-        <Text style={[styles.celula, styles.cabecalho]}>Consumo</Text>
+        <Text style={[styles.celula, styles.cabecalho]}>Consumo diário</Text>
         <Text style={[styles.celula, styles.cabecalho]}> </Text>
       </View>
 

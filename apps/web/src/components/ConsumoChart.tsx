@@ -1,11 +1,15 @@
+import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Line, Polyline } from 'react-native-svg';
+import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { Leitura } from '../api';
-import { calcularConsumoPorPeriodo } from '../consumo';
+import { calcularConsumoPorPeriodo, PontoConsumo } from '../consumo';
 
-const ALTURA = 160;
-const LARGURA = 560;
-const MARGEM = 24;
+const ALTURA = 200;
+const LARGURA = 640;
+const MARGEM_ESQUERDA = 44;
+const MARGEM_DIREITA = 16;
+const MARGEM_TOPO = 16;
+const MARGEM_BAIXO = 32;
 
 type Props = {
   leituras: Leitura[];
@@ -23,40 +27,77 @@ export function ConsumoChart({ leituras }: Props) {
           Registre pelo menos duas leituras para ver o gráfico.
         </Text>
       ) : (
-        <Grafico pontos={pontos.map((p) => p.mediaDiaria)} />
+        <Grafico pontos={pontos} />
       )}
     </View>
   );
 }
 
-function Grafico({ pontos }: { pontos: number[] }) {
-  const min = Math.min(0, ...pontos);
-  const max = Math.max(...pontos, 0.01);
-  const passoX = (LARGURA - MARGEM * 2) / (pontos.length - 1);
+function Grafico({ pontos }: { pontos: PontoConsumo[] }) {
+  const valores = pontos.map((p) => p.mediaDiaria);
+  const min = Math.min(0, ...valores);
+  const max = Math.max(...valores, 0.01);
+  const amplitude = max - min || 1;
 
+  const larguraUtil = LARGURA - MARGEM_ESQUERDA - MARGEM_DIREITA;
+  const alturaUtil = ALTURA - MARGEM_TOPO - MARGEM_BAIXO;
+  const passoX = pontos.length > 1 ? larguraUtil / (pontos.length - 1) : 0;
+
+  const escalaX = (i: number) => MARGEM_ESQUERDA + i * passoX;
   const escalaY = (valor: number) =>
-    ALTURA - MARGEM - ((valor - min) / (max - min)) * (ALTURA - MARGEM * 2);
+    MARGEM_TOPO + alturaUtil - ((valor - min) / amplitude) * alturaUtil;
 
-  const coordenadas = pontos.map((valor, i) => ({
-    x: MARGEM + i * passoX,
-    y: escalaY(valor),
+  const coordenadas = pontos.map((p, i) => ({
+    x: escalaX(i),
+    y: escalaY(p.mediaDiaria),
+    rotulo: p.data.slice(5), // MM-DD
   }));
 
   const linha = coordenadas.map((p) => `${p.x},${p.y}`).join(' ');
+  const ticksY = [min, (min + max) / 2, max];
+  const passoRotuloX = Math.max(1, Math.ceil(pontos.length / 6));
 
   return (
     <Svg width="100%" height={ALTURA} viewBox={`0 0 ${LARGURA} ${ALTURA}`}>
-      <Line
-        x1={MARGEM}
-        y1={escalaY(0)}
-        x2={LARGURA - MARGEM}
-        y2={escalaY(0)}
-        stroke="#e4e4e7"
-        strokeWidth={1}
-      />
+      {ticksY.map((valor, i) => (
+        <Fragment key={i}>
+          <Line
+            x1={MARGEM_ESQUERDA}
+            y1={escalaY(valor)}
+            x2={LARGURA - MARGEM_DIREITA}
+            y2={escalaY(valor)}
+            stroke="#e4e4e7"
+            strokeWidth={1}
+          />
+          <SvgText
+            x={MARGEM_ESQUERDA - 8}
+            y={escalaY(valor) + 3}
+            fontSize={10}
+            fill="#71717a"
+            textAnchor="end"
+          >
+            {valor.toFixed(2)}
+          </SvgText>
+        </Fragment>
+      ))}
+
       <Polyline points={linha} fill="none" stroke="#18181b" strokeWidth={2} />
+
       {coordenadas.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r={3} fill="#18181b" />
+        <Fragment key={i}>
+          <Circle cx={p.x} cy={p.y} r={3} fill="#18181b" />
+          {i % passoRotuloX === 0 || i === coordenadas.length - 1 ? (
+            <SvgText
+              x={p.x}
+              y={ALTURA - MARGEM_BAIXO + 16}
+              fontSize={10}
+              fill="#71717a"
+              textAnchor="middle"
+            >
+              {p.rotulo}
+            </SvgText>
+          ) : null}
+        </Fragment>
       ))}
     </Svg>
   );
