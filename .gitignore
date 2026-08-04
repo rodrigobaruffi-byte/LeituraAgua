@@ -1,0 +1,23 @@
+node_modules/
+dist/
+
+# Contém a connection string real do Neon (senha em texto puro) — não versionar.
+espec.md
+.env
+.env.local
+
+# Expo
+apps/web/.expo/
+apps/web/web-build/
+apps/web/dist/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
