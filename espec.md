@@ -6,17 +6,24 @@ Aplicação web para uso pessoal (sem login) que permite registrar leituras do h
 
 ## 2. Stack tecnológica
 
-- **Frontend:** React
-- **Backend:** Node.js (API REST, ex: Express)
-- **Banco de dados:** PostgreSQL
-- **Hospedagem gratuita sugerida:**
-  - Frontend → Render (Static Site)
-  - Backend → Render (Web Service)
-  - Banco → Neon (Postgres serverless, free tier, sem expiração)
+- **Frontend:** Expo (React Native Web), export estático
+- **Backend:** Hono, rodando em Cloudflare Workers
+- **Banco de dados:** Cloudflare D1 (SQLite), acessado via binding nativo do Worker
+- **Hospedagem:**
+  - Frontend → Cloudflare Pages
+  - Backend → Cloudflare Workers
+  - Banco → Cloudflare D1 (mesma conta Cloudflare, sem connection string/secret — acesso via binding declarado em `wrangler.toml`)
 
-Frontend e backend ficam na mesma conta/painel do Render, o que simplifica o gerenciamento. O Postgres fica no Neon em vez do Render porque o banco gratuito do Render expira em 30 dias (dados apagados depois); o Neon não tem esse limite. A integração entre backend e banco é feita via connection string do Neon, configurada como variável de ambiente no serviço Node do Render.
+Tudo na mesma conta Cloudflare, o que simplifica o gerenciamento e elimina a necessidade de variáveis de ambiente sensíveis para o banco.
 
-Como não há autenticação, a arquitetura fica simples: SPA React consumindo uma API REST sem camada de sessão/usuário.
+Como não há autenticação, a arquitetura fica simples: SPA consumindo uma API REST sem camada de sessão/usuário.
+
+> Histórico: a versão original (até ago/2026) rodava em React + Express + Postgres, hospedados em
+> Render (frontend/backend) e Neon (banco). Migrado para Cloudflare porque NestJS/Express não roda
+> nativamente em Workers (modelo `fetch` handler, sem bind de porta) — Hono foi feito para esse ambiente.
+> Dados existentes foram migrados do Neon para o D1 via replay das leituras pela própria API (inserts via
+> binding aceitam payloads de vários MB sem problema; só a ferramenta de import em massa do D1 tem um
+> limite de tamanho de statement bem mais restrito).
 
 **Repositório:** https://github.com/rodrigobaruffi-byte/LeituraAgua
 
@@ -28,21 +35,26 @@ Duas tabelas: `leitura` (conferências do usuário) e `leiturasanepar` (referên
 
 | Campo         | Tipo            | Observação |
 |---------------|-----------------|------------|
-| `id`          | SERIAL          | Chave primária, autoincrementável pelo banco |
-| `dataleitura` | DATE            | Data em que a leitura foi feita |
-| `valorleitura`| NUMERIC(10,2)   | Leitura do hidrômetro, 2 casas decimais |
+| `id`          | INTEGER         | Chave primária, `AUTOINCREMENT` |
+| `dataleitura` | TEXT            | Data em que a leitura foi feita, formato `YYYY-MM-DD` |
+| `valorleitura`| REAL            | Leitura do hidrômetro; formatada com 2 casas decimais na resposta da API |
 | `fotoleitura` | TEXT            | Foto da leitura em base64 (data URI, ex: `data:image/jpeg;base64,...`). Campo opcional. |
 
 ```sql
 CREATE TABLE leitura (
-  id SERIAL PRIMARY KEY,
-  dataleitura DATE NOT NULL,
-  valorleitura NUMERIC(10,2) NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  dataleitura TEXT NOT NULL,
+  valorleitura REAL NOT NULL,
   fotoleitura TEXT
 );
 ```
 
-**Trade-off assumido:** salvar a foto como base64 direto no Postgres é a opção mais simples de implementar, mas faz a tabela crescer rápido e pode deixar consultas mais lentas conforme o histórico aumenta. Se isso virar problema no futuro, dá para migrar `fotoleitura` para armazenar apenas uma URL de storage externo (Cloudflare R2 / Supabase Storage), sem mudar o resto do sistema.
+**Trade-off assumido:** salvar a foto como base64 direto no D1 é a opção mais simples de implementar. Um
+insert via binding do Worker (`.prepare().bind()`) aceita tranquilamente payloads de vários MB — testado
+com fotos de ~4MB sem problema. A única ferramenta que tem um limite bem mais restrito é o importador em
+massa via CLI (`wrangler d1 execute --file`, que embute tudo como texto SQL literal), irrelevante para o
+uso normal do app. Se o volume de fotos crescer muito no D1 (limite de storage da conta), dá para migrar
+`fotoleitura` para guardar só uma URL de storage externo (Cloudflare R2), sem mudar o resto do sistema.
 
 ### 3.2 Tabela `leiturasanepar`
 
@@ -50,15 +62,15 @@ Referência oficial: a data e o valor que a Sanepar efetivamente considera para 
 
 | Campo         | Tipo            | Observação |
 |---------------|-----------------|------------|
-| `id`          | SERIAL          | Chave primária, autoincrementável pelo banco |
-| `datasanepar` | DATE            | Data em que a Sanepar realizou a leitura para faturamento |
-| `valorsanepar`| NUMERIC(10,2)   | Valor do hidrômetro registrado pela Sanepar nessa data |
+| `id`          | INTEGER         | Chave primária, `AUTOINCREMENT` |
+| `datasanepar` | TEXT            | Data em que a Sanepar realizou a leitura para faturamento, formato `YYYY-MM-DD` |
+| `valorsanepar`| REAL            | Valor do hidrômetro registrado pela Sanepar nessa data; formatado com 2 casas decimais na resposta da API |
 
 ```sql
 CREATE TABLE leiturasanepar (
-  id SERIAL PRIMARY KEY,
-  datasanepar DATE NOT NULL,
-  valorsanepar NUMERIC(10,2) NOT NULL
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  datasanepar TEXT NOT NULL,
+  valorsanepar REAL NOT NULL
 );
 ```
 
@@ -125,23 +137,31 @@ Acessada pelo botão da tela inicial. Contém:
 
 ## 7. Ambiente de deploy
 
-Contas já criadas (cadastro inicial, sem serviços configurados ainda porque não há código):
+Tudo na conta Cloudflare (rodrigo.baruffi@gmail.com), sem variáveis de ambiente sensíveis — o banco é
+acessado via binding, não connection string.
 
-- **Render** — conta criada, login via GitHub. Serviços (Static Site + Web Service) serão criados só quando o repositório `LeituraAgua` tiver código para conectar. Ambos devem usar o tipo de instância **Free**.
-- **Neon** — conta criada, projeto `leitura-agua` provisionado.
+- **Cloudflare Workers** — projeto `leitura-agua-api`, deploy via `wrangler deploy` (dentro de `apps/api`).
+  URL: `https://leitura-agua-api.rodrigo-baruffi.workers.dev`.
+- **Cloudflare D1** — banco `leitura-agua`, binding `DB` declarado em `apps/api/wrangler.toml`
+  (`database_id` fica no próprio arquivo, versionado — não é secreto, só identifica o recurso na conta).
+- **Cloudflare Pages** — projeto `leitura-agua`, deploy via `wrangler pages deploy apps/web/dist
+  --project-name=leitura-agua`. Produção em `https://leitura-agua.pages.dev` (branch `main`); outros
+  branches geram preview deployments em `https://<branch>.leitura-agua.pages.dev`.
 
-### Variáveis de ambiente necessárias
-
-| Variável | Onde configurar | Valor |
-|----------|------------------|-------|
-| `DATABASE_URL` | Render → Web Service → aba **Environment** | `postgresql://neondb_owner:npg_PxvCAw9B3cdG@ep-long-rain-acvs592s.sa-east-1.aws.neon.tech/neondb?sslmode=require` |
-
-### Neon CLI (setup local)
-Para inicializar a integração do projeto com o Neon via linha de comando:
+### Setup local do Wrangler
 
 ```
-npx neonctl@latest init
+npx wrangler login
 ```
 
-### Observação
-Projeto pessoal simples, sem requisitos formais de segurança — a connection string está registrada diretamente aqui por decisão do autor. Ainda assim, o ideal é não versionar este arquivo publicamente com o valor real preenchido, já que ele dá acesso de escrita ao banco.
+### Deploy
+
+```
+pnpm --filter web run build && npx wrangler pages deploy apps/web/dist --project-name=leitura-agua
+cd apps/api && npx wrangler deploy
+```
+
+### Histórico (stack anterior, até ago/2026)
+
+Render (frontend + backend) e Neon (Postgres) — descontinuados após a migração para Cloudflare. A
+connection string do Neon não é mais usada por nenhum serviço ativo.

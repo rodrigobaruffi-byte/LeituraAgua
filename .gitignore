@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.wrangler/
 
 # Contém a connection string real do Neon (senha em texto puro) — não versionar.
 espec.md

@@ -1,0 +1,8 @@
+name = "leitura-agua-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-25"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "leitura-agua"
+database_id = "19b74801-d483-4db2-b5d9-1419db6f9b89"

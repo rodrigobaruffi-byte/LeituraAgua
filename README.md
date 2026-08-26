@@ -7,8 +7,8 @@ Controle pessoal de consumo de água: registro de leituras do hidrômetro e acom
 ```
 LeituraAgua/
 ├── apps/
-│   ├── web/   → frontend Expo (web)
-│   └── api/   → backend NestJS
+│   ├── web/   → frontend Expo (web), deploy no Cloudflare Pages
+│   └── api/   → backend Hono, deploy no Cloudflare Workers + D1
 ├── pnpm-workspace.yaml
 └── package.json
 ```
@@ -17,19 +17,20 @@ LeituraAgua/
 
 - Node.js >= 20
 - pnpm (`corepack enable` habilita a versão travada em `packageManager`)
-- Um banco Postgres acessível (Neon) com as tabelas `leitura` e `leiturasanepar` já criadas (ver `espec.md`, seção 3)
+- Conta Cloudflare com Wrangler CLI autenticado (`npx wrangler login`)
 
 ## Setup
 
 ```bash
 pnpm install
-cp apps/api/.env.example apps/api/.env   # preencher DATABASE_URL
 ```
+
+O banco (D1) é acessado via binding no `apps/api/wrangler.toml` — não precisa de connection string/`.env`.
 
 ## Rodando em desenvolvimento
 
 ```bash
-pnpm dev:api   # NestJS em http://localhost:3000/api
+pnpm dev:api   # Worker local (wrangler dev) em http://localhost:8787/api
 pnpm dev:web   # Expo web em http://localhost:8081
 ```
 
@@ -39,4 +40,4 @@ O frontend lê a URL da API da variável `EXPO_PUBLIC_API_URL` (ver `apps/web/.e
 
 ## Deploy
 
-Ver `espec.md`, seção 7 — Render (frontend + backend) e Neon (Postgres).
+Ver `espec.md`, seção 7 — Cloudflare Pages (frontend), Workers (backend) e D1 (banco).

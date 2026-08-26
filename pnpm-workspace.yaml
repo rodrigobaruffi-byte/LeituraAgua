@@ -1,8 +1,13 @@
 packages:
   - "apps/*"
+allowBuilds:
+  esbuild: true
+  workerd: true
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.12'
   - '@expo/router-server@57.0.5'
   - expo-constants@57.0.9
   - expo-modules-core@57.0.9
   - expo@57.0.10
+  - miniflare@5.20260825.0-alpha
+  - wrangler@4.126.0
