@@ -51,7 +51,11 @@ export function HomeScreen({ onAbrirSanepar }: Props) {
 
       <ConsumoChart leituras={leituras} />
 
-      <HistoricoLeituras leituras={leituras} onExcluir={excluir} />
+      <HistoricoLeituras
+        leituras={leituras}
+        leiturasSanepar={leiturasSanepar}
+        onExcluir={excluir}
+      />
     </ScrollView>
   );
 }

@@ -1,16 +1,25 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Leitura } from '../api';
-import { calcularConsumoPorPeriodo } from '../consumo';
+import { Leitura, LeituraSanepar } from '../api';
+import {
+  calcularConsumoPorPeriodo,
+  EstimativaProximaLeitura,
+  estimativaAcumuladaNaLeitura,
+} from '../consumo';
 
 type Props = {
   leituras: Leitura[];
+  leiturasSanepar: LeituraSanepar[];
   onExcluir: (id: number) => void;
 };
 
-export function HistoricoLeituras({ leituras, onExcluir }: Props) {
+export function HistoricoLeituras({ leituras, leiturasSanepar, onExcluir }: Props) {
   const consumoPorData = new Map(
     calcularConsumoPorPeriodo(leituras).map((p) => [p.data, p.consumoPeriodo]),
+  );
+
+  const estimativaPorId = new Map(
+    leituras.map((l) => [l.id, estimativaAcumuladaNaLeitura(l, leiturasSanepar)]),
   );
 
   const ordenadas = [...leituras].sort((a, b) => b.dataleitura.localeCompare(a.dataleitura));
@@ -24,6 +33,7 @@ export function HistoricoLeituras({ leituras, onExcluir }: Props) {
         <Text style={[styles.celula, styles.cabecalho]}>Leitura (m³)</Text>
         <Text style={[styles.celula, styles.cabecalho]}>Foto</Text>
         <Text style={[styles.celula, styles.cabecalho]}>Consumo diário</Text>
+        <Text style={[styles.celula, styles.cabecalho, { flex: 1.3 }]}>Estimativa ciclo</Text>
         <Text style={[styles.celula, styles.cabecalho]}> </Text>
       </View>
 
@@ -35,6 +45,7 @@ export function HistoricoLeituras({ leituras, onExcluir }: Props) {
             key={leitura.id}
             leitura={leitura}
             consumoPeriodo={consumoPorData.get(leitura.dataleitura) ?? null}
+            estimativa={estimativaPorId.get(leitura.id) ?? null}
             onExcluir={() => onExcluir(leitura.id)}
           />
         ))
@@ -46,10 +57,12 @@ export function HistoricoLeituras({ leituras, onExcluir }: Props) {
 function LinhaLeitura({
   leitura,
   consumoPeriodo,
+  estimativa,
   onExcluir,
 }: {
   leitura: Leitura;
   consumoPeriodo: number | null;
+  estimativa: EstimativaProximaLeitura | null;
   onExcluir: () => void;
 }) {
   const [ampliada, setAmpliada] = useState(false);
@@ -74,6 +87,23 @@ function LinhaLeitura({
       <Text style={styles.celula}>
         {consumoPeriodo !== null ? consumoPeriodo.toFixed(2) : '—'}
       </Text>
+      <View style={[styles.celula, { flex: 1.3 }]}>
+        {estimativa ? (
+          <>
+            <Text style={styles.estimativaValor}>
+              {estimativa.consumoEstimado.toFixed(2)} m³
+            </Text>
+            <Text style={styles.estimativaDetalhe}>
+              {estimativa.diasLidos}d lidos · {estimativa.diasRestantes}d restantes
+            </Text>
+            <Text style={styles.estimativaDetalhe}>
+              até {dataCurta(estimativa.dataProximaLeitura)}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.vazioInline}>—</Text>
+        )}
+      </View>
       <View style={styles.celula}>
         <Pressable onPress={onExcluir}>
           <Text style={styles.excluir}>Excluir</Text>
@@ -81,6 +111,12 @@ function LinhaLeitura({
       </View>
     </View>
   );
+}
+
+/** '2026-09-15' -> '15/09' */
+function dataCurta(iso: string): string {
+  const [, mes, dia] = iso.split('-');
+  return `${dia}/${mes}`;
 }
 
 const styles = StyleSheet.create({
@@ -108,6 +144,8 @@ const styles = StyleSheet.create({
   },
   celula: { flex: 1, fontSize: 13, color: '#18181b' },
   cabecalho: { fontSize: 12, color: '#71717a', fontWeight: '600' },
+  estimativaValor: { fontSize: 13, color: '#18181b' },
+  estimativaDetalhe: { fontSize: 11, color: '#a1a1aa' },
   vazio: { fontSize: 13, color: '#71717a', paddingVertical: 8 },
   vazioInline: { fontSize: 13, color: '#a1a1aa' },
   fotoMiniatura: { width: 40, height: 40, borderRadius: 4, backgroundColor: '#e4e4e7' },

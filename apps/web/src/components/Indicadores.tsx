@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Leitura, LeituraSanepar } from '../api';
+import { estimarConsumoProximaLeitura } from '../consumo';
 
 type Props = {
   leituras: Leitura[];
@@ -20,8 +21,28 @@ export function Indicadores({ leituras, leiturasSanepar }: Props) {
       ? Number(ultimaLeitura.valorleitura) - Number(ultimaSanepar.valorsanepar)
       : null;
 
+  const hoje = new Date().toISOString().slice(0, 10);
+  const estimativa =
+    consumoAteHoje !== null && ultimaLeitura && ultimaSanepar
+      ? estimarConsumoProximaLeitura(
+          consumoAteHoje,
+          ultimaSanepar.datasanepar,
+          ultimaLeitura.dataleitura,
+          hoje,
+        )
+      : null;
+
   return (
     <View style={styles.container}>
+      <Cartao
+        rotulo={
+          estimativa
+            ? `Próximo Consumo estimado, com data de leitura em ${dataCurta(estimativa.dataProximaLeitura)}`
+            : 'Consumo estimado'
+        }
+        valor={estimativa ? `${estimativa.consumoEstimado.toFixed(2)} m³` : '—'}
+        destaque
+      />
       <Cartao rotulo="Leituras registradas" valor={String(leituras.length)} />
       <Cartao
         rotulo="Dt última leitura Sanepar"
@@ -39,13 +60,27 @@ export function Indicadores({ leituras, leiturasSanepar }: Props) {
   );
 }
 
-function Cartao({ rotulo, valor }: { rotulo: string; valor: string }) {
+function Cartao({
+  rotulo,
+  valor,
+  destaque,
+}: {
+  rotulo: string;
+  valor: string;
+  destaque?: boolean;
+}) {
   return (
-    <View style={styles.cartao}>
+    <View style={[styles.cartao, destaque && styles.cartaoDestaque]}>
       <Text style={styles.rotulo}>{rotulo}</Text>
-      <Text style={styles.valor}>{valor}</Text>
+      <Text style={[styles.valor, destaque && styles.valorDestaque]}>{valor}</Text>
     </View>
   );
+}
+
+/** '2026-09-15' -> '15/09' */
+function dataCurta(iso: string): string {
+  const [, mes, dia] = iso.split('-');
+  return `${dia}/${mes}`;
 }
 
 const styles = StyleSheet.create({
@@ -59,6 +94,12 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#fafafa',
   },
+  cartaoDestaque: {
+    minWidth: '100%',
+    borderColor: '#bae6fd',
+    backgroundColor: '#f0f9ff',
+  },
   rotulo: { fontSize: 12, color: '#71717a', marginBottom: 4 },
   valor: { fontSize: 18, fontWeight: '600', color: '#18181b' },
+  valorDestaque: { fontSize: 24, color: '#0369a1' },
 });
