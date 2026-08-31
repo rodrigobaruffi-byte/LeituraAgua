@@ -5,6 +5,41 @@ type Props = {
   onChange: (base64: string | null) => void;
 };
 
+// Máximo do maior lado, em px. Uma foto de hidrômetro não precisa de mais
+// que isso para o número ficar legível.
+const MAX_LADO = 1280;
+const QUALIDADE_JPEG = 0.7;
+
+// Redimensiona e recomprime como JPEG usando <canvas>, para não gravar a
+// foto crua da câmera (vários MB) no banco. Browsers atuais já aplicam a
+// orientação EXIF ao desenhar no canvas, então não tratamos rotação aqui.
+function comprimirImagem(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const g = globalThis as any;
+    const url = g.URL.createObjectURL(file);
+    const img = new g.Image();
+
+    img.onload = () => {
+      g.URL.revokeObjectURL(url);
+      const escala = Math.min(1, MAX_LADO / Math.max(img.width, img.height));
+      const w = Math.round(img.width * escala);
+      const h = Math.round(img.height * escala);
+
+      const canvas = g.document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      resolve(canvas.toDataURL('image/jpeg', QUALIDADE_JPEG));
+    };
+    img.onerror = () => {
+      g.URL.revokeObjectURL(url);
+      reject(new Error('Falha ao carregar a imagem'));
+    };
+    img.src = url;
+  });
+}
+
 // Projeto é Expo for web (não app nativo), então o acesso à câmera é feito
 // via <input type="file" capture="environment">, criado imperativamente
 // para não depender das tipagens DOM no tsconfig do React Native.
@@ -25,9 +60,14 @@ export function FotoInput({ value, onChange }: Props) {
       const file = input.files && input.files[0];
       if (!file) return;
 
-      const reader = new (globalThis as any).FileReader();
-      reader.onload = () => onChange(reader.result);
-      reader.readAsDataURL(file);
+      comprimirImagem(file)
+        .then(onChange)
+        .catch(() => {
+          // Se a compressão falhar, cai para a imagem original.
+          const reader = new (globalThis as any).FileReader();
+          reader.onload = () => onChange(reader.result);
+          reader.readAsDataURL(file);
+        });
     };
     input.click();
   }
