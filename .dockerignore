@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+apps/api/dist
+apps/web/dist
+apps/web/.expo
+apps/web/.claude
+.git
+.gitignore
+*.md
+espec.md
+deploy.sh
+pyt
+*.key
+*.crt
+apps/web/.env
