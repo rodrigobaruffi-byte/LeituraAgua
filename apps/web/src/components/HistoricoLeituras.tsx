@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Leitura, LeituraSanepar } from '../api';
 import {
   calcularConsumoPorPeriodo,
@@ -77,13 +77,22 @@ function LinhaLeitura({
       <Text style={styles.celula}>{Number(leitura.valorleitura).toFixed(2)}</Text>
       <View style={styles.celula}>
         {foto ? (
-          <Pressable onPress={() => setAmpliada((v) => !v)}>
-            <Image
-              source={{ uri: foto }}
-              style={ampliada ? styles.fotoAmpliada : styles.fotoMiniatura}
-              resizeMode="cover"
-            />
-          </Pressable>
+          <>
+            <Pressable onPress={() => setAmpliada(true)}>
+              <Image source={{ uri: foto }} style={styles.fotoMiniatura} resizeMode="cover" />
+            </Pressable>
+            <Modal
+              visible={ampliada}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setAmpliada(false)}
+            >
+              <Pressable style={styles.modalFundo} onPress={() => setAmpliada(false)}>
+                <Image source={{ uri: foto }} style={styles.fotoModal} resizeMode="contain" />
+                <Text style={styles.modalFechar}>Toque para fechar</Text>
+              </Pressable>
+            </Modal>
+          </>
         ) : leitura.temfoto ? (
           <View style={styles.fotoMiniatura} />
         ) : (
@@ -155,6 +164,15 @@ const styles = StyleSheet.create({
   vazio: { fontSize: 13, color: '#71717a', paddingVertical: 8 },
   vazioInline: { fontSize: 13, color: '#a1a1aa' },
   fotoMiniatura: { width: 40, height: 40, borderRadius: 4, backgroundColor: '#e4e4e7' },
-  fotoAmpliada: { width: 160, height: 160, borderRadius: 4, backgroundColor: '#e4e4e7' },
+  modalFundo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  fotoModal: { width: '100%', height: '85%' },
+  modalFechar: { color: '#d4d4d8', fontSize: 12 },
   excluir: { color: '#b91c1c', fontSize: 13 },
 });
