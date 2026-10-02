@@ -1,0 +1,42 @@
+name: Deploy LeituraAgua
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Guardar commit atual (para rollback)
+        id: prev
+        run: |
+          cd ~/prog/leituragua
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Atualizar código
+        run: |
+          cd ~/prog/leituragua
+          git fetch origin
+          git reset --hard origin/main
+
+      - name: Build e subir containers
+        run: |
+          mkdir -p ~/logs
+          cd ~/prog/servicos
+          docker compose -f leituragua-api.yml build --progress=plain 2>&1 | tee ~/logs/leituragua-api-build.log
+          docker compose -f leituragua-api.yml up -d
+          docker compose -f leituragua-web.yml build --progress=plain 2>&1 | tee ~/logs/leituragua-web-build.log
+          docker compose -f leituragua-web.yml up -d
+
+      - name: Teste de saúde
+        run: curl -sSf --retry 5 --retry-all-errors --retry-delay 5 https://agua.familydaycare.com.br
+
+      - name: Rollback se falhar
+        if: failure()
+        run: |
+          cd ~/prog/leituragua
+          git reset --hard ${{ steps.prev.outputs.commit }}
+          cd ~/prog/servicos
+          docker compose -f leituragua-api.yml up -d --build
+          docker compose -f leituragua-web.yml up -d --build
