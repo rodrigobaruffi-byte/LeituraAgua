@@ -10,9 +10,19 @@ export class LeiturasService {
   findAll() {
     return this.pool
       .query(
-        `SELECT id, dataleitura, valorleitura, fotoleitura
+        `SELECT id, dataleitura, valorleitura, (fotoleitura IS NOT NULL) AS temfoto
          FROM leitura
          ORDER BY dataleitura ASC, id ASC`,
+      )
+      .then((result) => result.rows);
+  }
+
+  findFotos() {
+    return this.pool
+      .query(
+        `SELECT id, fotoleitura
+         FROM leitura
+         WHERE fotoleitura IS NOT NULL`,
       )
       .then((result) => result.rows);
   }

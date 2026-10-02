@@ -10,10 +10,11 @@ import {
 type Props = {
   leituras: Leitura[];
   leiturasSanepar: LeituraSanepar[];
+  fotos: Map<number, string>;
   onExcluir: (id: number) => void;
 };
 
-export function HistoricoLeituras({ leituras, leiturasSanepar, onExcluir }: Props) {
+export function HistoricoLeituras({ leituras, leiturasSanepar, fotos, onExcluir }: Props) {
   const consumoPorData = new Map(
     calcularConsumoPorPeriodo(leituras).map((p) => [p.data, p.consumoPeriodo]),
   );
@@ -44,6 +45,7 @@ export function HistoricoLeituras({ leituras, leiturasSanepar, onExcluir }: Prop
           <LinhaLeitura
             key={leitura.id}
             leitura={leitura}
+            foto={fotos.get(leitura.id) ?? null}
             consumoPeriodo={consumoPorData.get(leitura.dataleitura) ?? null}
             estimativa={estimativaPorId.get(leitura.id) ?? null}
             onExcluir={() => onExcluir(leitura.id)}
@@ -56,11 +58,13 @@ export function HistoricoLeituras({ leituras, leiturasSanepar, onExcluir }: Prop
 
 function LinhaLeitura({
   leitura,
+  foto,
   consumoPeriodo,
   estimativa,
   onExcluir,
 }: {
   leitura: Leitura;
+  foto: string | null;
   consumoPeriodo: number | null;
   estimativa: EstimativaProximaLeitura | null;
   onExcluir: () => void;
@@ -72,14 +76,16 @@ function LinhaLeitura({
       <Text style={[styles.celula, { flex: 1.2 }]}>{leitura.dataleitura}</Text>
       <Text style={styles.celula}>{Number(leitura.valorleitura).toFixed(2)}</Text>
       <View style={styles.celula}>
-        {leitura.fotoleitura ? (
+        {foto ? (
           <Pressable onPress={() => setAmpliada((v) => !v)}>
             <Image
-              source={{ uri: leitura.fotoleitura }}
+              source={{ uri: foto }}
               style={ampliada ? styles.fotoAmpliada : styles.fotoMiniatura}
               resizeMode="cover"
             />
           </Pressable>
+        ) : leitura.temfoto ? (
+          <View style={styles.fotoMiniatura} />
         ) : (
           <Text style={styles.vazioInline}>—</Text>
         )}

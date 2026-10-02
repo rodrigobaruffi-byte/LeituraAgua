@@ -19,6 +19,11 @@ export class LeiturasController {
     return this.leiturasService.findAll();
   }
 
+  @Get('fotos')
+  findFotos() {
+    return this.leiturasService.findFotos();
+  }
+
   @Post()
   create(@Body() dto: CreateLeituraDto) {
     return this.leiturasService.create(dto);

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { deleteLeitura, Leitura, LeituraSanepar, listLeiturasSanepar, listLeituras } from '../api';
+import {
+  deleteLeitura,
+  Leitura,
+  LeituraSanepar,
+  listFotosLeituras,
+  listLeiturasSanepar,
+  listLeituras,
+} from '../api';
 import { ConsumoChart } from '../components/ConsumoChart';
 import { HistoricoLeituras } from '../components/HistoricoLeituras';
 import { Indicadores } from '../components/Indicadores';
@@ -14,6 +21,9 @@ export function HomeScreen({ onAbrirSanepar }: Props) {
   const [leituras, setLeituras] = useState<Leitura[]>([]);
   const [leiturasSanepar, setLeiturasSanepar] = useState<LeituraSanepar[]>([]);
 
+  const [fotos, setFotos] = useState<Map<number, string>>(new Map());
+
+  // Fotos (base64, pesadas) vêm numa segunda requisição, depois de indicadores e gráfico.
   const carregar = useCallback(async () => {
     const [leiturasData, saneparData] = await Promise.all([
       listLeituras(),
@@ -21,6 +31,9 @@ export function HomeScreen({ onAbrirSanepar }: Props) {
     ]);
     setLeituras(leiturasData);
     setLeiturasSanepar(saneparData);
+
+    const fotosData = await listFotosLeituras();
+    setFotos(new Map(fotosData.map((f) => [f.id, f.fotoleitura])));
   }, []);
 
   useEffect(() => {
@@ -54,6 +67,7 @@ export function HomeScreen({ onAbrirSanepar }: Props) {
       <HistoricoLeituras
         leituras={leituras}
         leiturasSanepar={leiturasSanepar}
+        fotos={fotos}
         onExcluir={excluir}
       />
     </ScrollView>

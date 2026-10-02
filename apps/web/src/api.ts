@@ -5,7 +5,12 @@ export type Leitura = {
   id: number;
   dataleitura: string;
   valorleitura: string;
-  fotoleitura: string | null;
+  temfoto: boolean;
+};
+
+export type FotoLeitura = {
+  id: number;
+  fotoleitura: string;
 };
 
 export type LeituraSanepar = {
@@ -35,12 +40,16 @@ export function listLeituras() {
   return request<Leitura[]>('/leituras');
 }
 
+export function listFotosLeituras() {
+  return request<FotoLeitura[]>('/leituras/fotos');
+}
+
 export function createLeitura(data: {
   dataleitura: string;
   valorleitura: number;
   fotoleitura?: string | null;
 }) {
-  return request<Leitura>('/leituras', {
+  return request<unknown>('/leituras', {
     method: 'POST',
     body: JSON.stringify(data),
   });
