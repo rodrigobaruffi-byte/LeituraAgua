@@ -34,6 +34,43 @@ export function calcularConsumoPorPeriodo(leituras: Leitura[]): PontoConsumo[] {
   return pontos;
 }
 
+export type PontoDiario = {
+  data: string;
+  mediaDiaria: number;
+};
+
+/**
+ * Série com um ponto por dia, sem buracos: cada dia entre duas leituras
+ * consecutivas (do dia seguinte à anterior até a data da atual) recebe a
+ * média diária daquele intervalo.
+ */
+export function calcularSerieDiaria(leituras: Leitura[]): PontoDiario[] {
+  const ordenadas = [...leituras].sort((a, b) => a.dataleitura.localeCompare(b.dataleitura));
+
+  const serie: PontoDiario[] = [];
+  for (let i = 1; i < ordenadas.length; i++) {
+    const anterior = ordenadas[i - 1].dataleitura;
+    const atual = ordenadas[i].dataleitura;
+    const dias = diasEntre(anterior, atual);
+    if (dias < 1) continue; // leituras no mesmo dia não abrem um novo dia
+    const media =
+      (Number(ordenadas[i].valorleitura) - Number(ordenadas[i - 1].valorleitura)) / dias;
+
+    for (let d = 1; d <= dias; d++) {
+      serie.push({ data: somarDias(anterior, d), mediaDiaria: media });
+    }
+  }
+
+  return serie;
+}
+
+/** Soma `dias` a uma data YYYY-MM-DD (em UTC, sem deslocamento de fuso). */
+export function somarDias(data: string, dias: number): string {
+  const d = new Date(data);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
 function diasEntre(dataInicio: string, dataFim: string): number {
   const inicio = new Date(dataInicio).getTime();
   const fim = new Date(dataFim).getTime();

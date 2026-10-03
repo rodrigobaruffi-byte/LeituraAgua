@@ -62,7 +62,7 @@ export function HomeScreen({ onAbrirSanepar }: Props) {
 
       <NovaLeituraForm onCriada={carregar} />
 
-      <ConsumoChart leituras={leituras} />
+      <ConsumoChart leituras={leituras} leiturasSanepar={leiturasSanepar} />
 
       <HistoricoLeituras
         leituras={leituras}
