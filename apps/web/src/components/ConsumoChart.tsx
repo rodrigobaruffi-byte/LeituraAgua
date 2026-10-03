@@ -10,6 +10,7 @@ const MARGEM_ESQUERDA = 44;
 const MARGEM_DIREITA = 16;
 const MARGEM_TOPO = 16;
 const MARGEM_BAIXO = 32;
+const MAX_ROTULOS_X = 12;
 
 type Periodo = 'total' | '30dias' | 'sanepar';
 
@@ -19,6 +20,10 @@ const PERIODOS: { chave: Periodo; rotulo: string }[] = [
   { chave: 'sanepar', rotulo: 'Leitura Sanepar' },
 ];
 
+const JANELAS_MEDIA = [3, 5, 17];
+
+type PontoGrafico = PontoDiario & { mediaMovel: number | null };
+
 type Props = {
   leituras: Leitura[];
   leiturasSanepar: LeituraSanepar[];
@@ -26,6 +31,7 @@ type Props = {
 
 export function ConsumoChart({ leituras, leiturasSanepar }: Props) {
   const [periodo, setPeriodo] = useState<Periodo>('total');
+  const [janela, setJanela] = useState(JANELAS_MEDIA[0]);
 
   const serie = calcularSerieDiaria(leituras);
   const ultimaSanepar = leiturasSanepar.reduce<string | null>(
@@ -33,7 +39,10 @@ export function ConsumoChart({ leituras, leiturasSanepar }: Props) {
     null,
   );
 
-  const pontos = filtrarPeriodo(serie, periodo, ultimaSanepar);
+  // A média móvel é calculada sobre a série inteira e só depois recortada no período,
+  // para que o início do período já use os dias anteriores.
+  const comMedia = adicionarMediaMovel(serie, janela);
+  const pontos = filtrarPeriodo(comMedia, periodo, ultimaSanepar);
 
   return (
     <View style={styles.card}>
@@ -68,15 +77,40 @@ export function ConsumoChart({ leituras, leiturasSanepar }: Props) {
       ) : (
         <Grafico pontos={pontos} />
       )}
+
+      <View style={styles.rodape}>
+        <Text style={styles.rodapeRotulo}>Média móvel (dias):</Text>
+        <View style={styles.botoes}>
+          {JANELAS_MEDIA.map((n) => (
+            <Pressable
+              key={n}
+              onPress={() => setJanela(n)}
+              style={[styles.botao, janela === n && styles.botaoAtivo]}
+            >
+              <Text style={[styles.botaoTexto, janela === n && styles.botaoTextoAtivo]}>{n}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
     </View>
   );
 }
 
+/** Média dos últimos `janela` dias (inclusive o próprio); nula enquanto não há dias suficientes. */
+function adicionarMediaMovel(serie: PontoDiario[], janela: number): PontoGrafico[] {
+  return serie.map((p, i) => {
+    if (i + 1 < janela) return { ...p, mediaMovel: null };
+    let soma = 0;
+    for (let j = i - janela + 1; j <= i; j++) soma += serie[j].mediaDiaria;
+    return { ...p, mediaMovel: soma / janela };
+  });
+}
+
 function filtrarPeriodo(
-  serie: PontoDiario[],
+  serie: PontoGrafico[],
   periodo: Periodo,
   ultimaSanepar: string | null,
-): PontoDiario[] {
+): PontoGrafico[] {
   if (serie.length === 0 || periodo === 'total') return serie;
 
   if (periodo === '30dias') {
@@ -89,9 +123,10 @@ function filtrarPeriodo(
   return serie.filter((p) => p.data >= inicio);
 }
 
-function Grafico({ pontos }: { pontos: PontoDiario[] }) {
-  const valores = pontos.map((p) => p.mediaDiaria);
-  const media = valores.reduce((soma, v) => soma + v, 0) / valores.length;
+function Grafico({ pontos }: { pontos: PontoGrafico[] }) {
+  const valores = pontos.flatMap((p) =>
+    p.mediaMovel === null ? [p.mediaDiaria] : [p.mediaDiaria, p.mediaMovel],
+  );
   const min = Math.min(0, ...valores);
   const max = Math.max(...valores, 0.01);
   const amplitude = max - min || 1;
@@ -112,8 +147,10 @@ function Grafico({ pontos }: { pontos: PontoDiario[] }) {
 
   const linha = coordenadas.map((p) => `${p.x},${p.y}`).join(' ');
   const ticksY = [min, (min + max) / 2, max];
-  const passoRotuloX = Math.max(1, Math.ceil(pontos.length / 6));
-  const yMedia = escalaY(media);
+  const passoRotuloX = Math.max(1, Math.ceil(pontos.length / MAX_ROTULOS_X));
+  const linhaMedia = pontos
+    .flatMap((p, i) => (p.mediaMovel === null ? [] : [`${escalaX(i)},${escalaY(p.mediaMovel)}`]))
+    .join(' ');
 
   return (
     <Svg width="100%" height={ALTURA} viewBox={`0 0 ${LARGURA} ${ALTURA}`}>
@@ -141,39 +178,36 @@ function Grafico({ pontos }: { pontos: PontoDiario[] }) {
 
       <Polyline points={linha} fill="none" stroke="#18181b" strokeWidth={2} />
 
-      <Line
-        x1={MARGEM_ESQUERDA}
-        y1={yMedia}
-        x2={LARGURA - MARGEM_DIREITA}
-        y2={yMedia}
-        stroke="#2563eb"
-        strokeWidth={1.5}
-        strokeDasharray="6 4"
-      />
-      <SvgText
-        x={LARGURA - MARGEM_DIREITA}
-        y={yMedia - 4}
-        fontSize={10}
-        fill="#2563eb"
-        textAnchor="end"
-      >
-        {`média ${media.toFixed(2)}`}
-      </SvgText>
+      {linhaMedia ? (
+        <Polyline points={linhaMedia} fill="none" stroke="#2563eb" strokeWidth={2} />
+      ) : null}
 
-      {coordenadas.map((p, i) =>
-        i % passoRotuloX === 0 || i === coordenadas.length - 1 ? (
-          <SvgText
-            key={i}
-            x={p.x}
-            y={ALTURA - MARGEM_BAIXO + 16}
-            fontSize={10}
-            fill="#71717a"
-            textAnchor="middle"
-          >
-            {p.rotulo}
-          </SvgText>
-        ) : null,
-      )}
+      {coordenadas.map((p, i) => {
+        const comRotulo = i % passoRotuloX === 0 || i === coordenadas.length - 1;
+        return (
+          <Fragment key={i}>
+            <Line
+              x1={p.x}
+              y1={ALTURA - MARGEM_BAIXO}
+              x2={p.x}
+              y2={ALTURA - MARGEM_BAIXO + (comRotulo ? 5 : 3)}
+              stroke="#a1a1aa"
+              strokeWidth={1}
+            />
+            {comRotulo ? (
+              <SvgText
+                x={p.x}
+                y={ALTURA - MARGEM_BAIXO + 17}
+                fontSize={10}
+                fill="#71717a"
+                textAnchor="middle"
+              >
+                {p.rotulo}
+              </SvgText>
+            ) : null}
+          </Fragment>
+        );
+      })}
     </Svg>
   );
 }
@@ -195,6 +229,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   titulo: { fontSize: 16, fontWeight: '600', color: '#18181b' },
+  rodape: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  rodapeRotulo: { fontSize: 12, color: '#71717a' },
   botoes: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   botao: {
     borderWidth: 1,
