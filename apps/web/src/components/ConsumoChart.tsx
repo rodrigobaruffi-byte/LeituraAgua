@@ -31,8 +31,8 @@ type Props = {
 };
 
 export function ConsumoChart({ leituras, leiturasSanepar }: Props) {
-  const [periodo, setPeriodo] = useState<Periodo>('total');
-  const [janela, setJanela] = useState(JANELAS_MEDIA[0]);
+  const [periodo, setPeriodo] = useState<Periodo>('sanepar');
+  const [janela, setJanela] = useState(17);
 
   const serie = calcularSerieDiaria(leituras);
   const ultimaSanepar = leiturasSanepar.reduce<string | null>(
