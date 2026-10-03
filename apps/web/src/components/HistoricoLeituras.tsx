@@ -15,8 +15,8 @@ type Props = {
 };
 
 export function HistoricoLeituras({ leituras, leiturasSanepar, fotos, onExcluir }: Props) {
-  const consumoPorData = new Map(
-    calcularConsumoPorPeriodo(leituras).map((p) => [p.data, p.consumoPeriodo]),
+  const mediaPorData = new Map(
+    calcularConsumoPorPeriodo(leituras).map((p) => [p.data, p.mediaDiaria]),
   );
 
   const estimativaPorId = new Map(
@@ -46,7 +46,7 @@ export function HistoricoLeituras({ leituras, leiturasSanepar, fotos, onExcluir 
             key={leitura.id}
             leitura={leitura}
             foto={fotos.get(leitura.id) ?? null}
-            consumoPeriodo={consumoPorData.get(leitura.dataleitura) ?? null}
+            mediaDiaria={mediaPorData.get(leitura.dataleitura) ?? null}
             estimativa={estimativaPorId.get(leitura.id) ?? null}
             onExcluir={() => onExcluir(leitura.id)}
           />
@@ -59,13 +59,13 @@ export function HistoricoLeituras({ leituras, leiturasSanepar, fotos, onExcluir 
 function LinhaLeitura({
   leitura,
   foto,
-  consumoPeriodo,
+  mediaDiaria,
   estimativa,
   onExcluir,
 }: {
   leitura: Leitura;
   foto: string | null;
-  consumoPeriodo: number | null;
+  mediaDiaria: number | null;
   estimativa: EstimativaProximaLeitura | null;
   onExcluir: () => void;
 }) {
@@ -100,7 +100,7 @@ function LinhaLeitura({
         )}
       </View>
       <Text style={styles.celula}>
-        {consumoPeriodo !== null ? consumoPeriodo.toFixed(2) : '—'}
+        {mediaDiaria !== null ? mediaDiaria.toFixed(2) : '—'}
       </Text>
       <View style={[styles.celula, { flex: 1.3 }]}>
         {estimativa ? (
