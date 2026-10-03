@@ -11,6 +11,7 @@ const MARGEM_DIREITA = 16;
 const MARGEM_TOPO = 16;
 const MARGEM_BAIXO = 32;
 const MAX_ROTULOS_X = 12;
+const TICKS_Y = 6; // par: o ponto do meio cai num tick
 
 type Periodo = 'total' | '30dias' | 'sanepar';
 
@@ -146,7 +147,11 @@ function Grafico({ pontos }: { pontos: PontoGrafico[] }) {
   }));
 
   const linha = coordenadas.map((p) => `${p.x},${p.y}`).join(' ');
-  const ticksY = [min, (min + max) / 2, max];
+  // Rótulos a cada 1/6 da amplitude; só mínimo, meio e máximo ganham linha de grade.
+  const ticksY = Array.from({ length: TICKS_Y + 1 }, (_, i) => ({
+    valor: min + (amplitude * i) / TICKS_Y,
+    grade: i % (TICKS_Y / 2) === 0,
+  }));
   const passoRotuloX = Math.max(1, Math.ceil(pontos.length / MAX_ROTULOS_X));
   const linhaMedia = pontos
     .flatMap((p, i) => (p.mediaMovel === null ? [] : [`${escalaX(i)},${escalaY(p.mediaMovel)}`]))
@@ -154,16 +159,27 @@ function Grafico({ pontos }: { pontos: PontoGrafico[] }) {
 
   return (
     <Svg width="100%" height={ALTURA} viewBox={`0 0 ${LARGURA} ${ALTURA}`}>
-      {ticksY.map((valor, i) => (
+      {ticksY.map(({ valor, grade }, i) => (
         <Fragment key={i}>
-          <Line
-            x1={MARGEM_ESQUERDA}
-            y1={escalaY(valor)}
-            x2={LARGURA - MARGEM_DIREITA}
-            y2={escalaY(valor)}
-            stroke="#e4e4e7"
-            strokeWidth={1}
-          />
+          {grade ? (
+            <Line
+              x1={MARGEM_ESQUERDA}
+              y1={escalaY(valor)}
+              x2={LARGURA - MARGEM_DIREITA}
+              y2={escalaY(valor)}
+              stroke="#e4e4e7"
+              strokeWidth={1}
+            />
+          ) : (
+            <Line
+              x1={MARGEM_ESQUERDA - 3}
+              y1={escalaY(valor)}
+              x2={MARGEM_ESQUERDA}
+              y2={escalaY(valor)}
+              stroke="#a1a1aa"
+              strokeWidth={1}
+            />
+          )}
           <SvgText
             x={MARGEM_ESQUERDA - 8}
             y={escalaY(valor) + 3}
