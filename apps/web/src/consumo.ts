@@ -184,3 +184,49 @@ function proximaDataMesmoDia(dataBase: string, aposData: string): string {
 function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
+
+// Tarifa residencial Sanepar, em centavos para evitar erro de ponto flutuante.
+// Cada faixa cobra `precoCentavos` por m³ dentro do seu volume; a primeira
+// (mínimo) é um valor fixo até 5 m³. O esgoto é 85% do valor da água.
+const FAIXAS_TARIFA = [
+  { volume: 5, precoCentavos: 170 }, // 6 a 10 m³
+  { volume: 5, precoCentavos: 949 }, // 11 a 15 m³
+  { volume: 5, precoCentavos: 954 }, // 16 a 20 m³
+  { volume: 10, precoCentavos: 962 }, // 21 a 30 m³
+  { volume: Infinity, precoCentavos: 1628 }, // acima de 30 m³
+];
+const MINIMO_M3 = 5;
+const MINIMO_AGUA_CENTAVOS = 5509;
+const PERCENTUAL_ESGOTO = 85;
+
+export type ValorFatura = {
+  agua: number;
+  esgoto: number;
+  total: number;
+};
+
+/** Esgoto de uma parcela de água (centavos), arredondado como na fatura. */
+function esgotoCentavos(aguaCentavos: number): number {
+  return Math.round((aguaCentavos * PERCENTUAL_ESGOTO) / 100);
+}
+
+/**
+ * Valor da fatura (água + esgoto, em R$) para um consumo em m³. O consumo é
+ * truncado para inteiro (19,98 m³ vale 19 m³).
+ */
+export function calcularValorFatura(consumoM3: number): ValorFatura {
+  let restante = Math.max(0, Math.floor(consumoM3)) - MINIMO_M3;
+  let agua = MINIMO_AGUA_CENTAVOS;
+  let esgoto = esgotoCentavos(MINIMO_AGUA_CENTAVOS);
+
+  for (const faixa of FAIXAS_TARIFA) {
+    if (restante <= 0) break;
+    const m3 = Math.min(restante, faixa.volume);
+    const aguaFaixa = m3 * faixa.precoCentavos;
+    agua += aguaFaixa;
+    esgoto += esgotoCentavos(aguaFaixa);
+    restante -= m3;
+  }
+
+  return { agua: agua / 100, esgoto: esgoto / 100, total: (agua + esgoto) / 100 };
+}
