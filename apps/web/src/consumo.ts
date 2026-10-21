@@ -230,3 +230,39 @@ export function calcularValorFatura(consumoM3: number): ValorFatura {
 
   return { agua: agua / 100, esgoto: esgoto / 100, total: (agua + esgoto) / 100 };
 }
+
+export type LinhaTarifa = {
+  faixa: string;
+  /** Volume (m³) cobrado dentro da faixa; `null` na última, sem limite. */
+  volume: number | null;
+  /** Valor do m³ com água e esgoto somados, em R$; `null` no mínimo (valor fixo). */
+  valorM3: number | null;
+  /** Valor fixo (água + esgoto) do mínimo, em R$; `null` nas demais faixas. */
+  valorFixo: number | null;
+};
+
+/** Tabela da tarifa para exibição, com água e esgoto já somados. */
+export function tabelaTarifa(): LinhaTarifa[] {
+  const linhas: LinhaTarifa[] = [
+    {
+      faixa: `Mínimo (até ${MINIMO_M3} m³)`,
+      volume: MINIMO_M3,
+      valorM3: null,
+      valorFixo: (MINIMO_AGUA_CENTAVOS + esgotoCentavos(MINIMO_AGUA_CENTAVOS)) / 100,
+    },
+  ];
+
+  let inicio = MINIMO_M3 + 1;
+  for (const f of FAIXAS_TARIFA) {
+    const ilimitada = !Number.isFinite(f.volume);
+    linhas.push({
+      faixa: ilimitada ? `Acima de ${inicio - 1} m³` : `${inicio} a ${inicio + f.volume - 1} m³`,
+      volume: ilimitada ? null : f.volume,
+      valorM3: (f.precoCentavos * (100 + PERCENTUAL_ESGOTO)) / 100 / 100,
+      valorFixo: null,
+    });
+    inicio += f.volume;
+  }
+
+  return linhas;
+}

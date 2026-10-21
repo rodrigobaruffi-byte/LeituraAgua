@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { deleteLeituraSanepar, LeituraSanepar, listLeiturasSanepar } from '../api';
-import { HistoricoSanepar } from '../components/HistoricoSanepar';
+import { HistoricoSanepar, RegraCalculoConsumo } from '../components/HistoricoSanepar';
 import { SaneparForm } from '../components/SaneparForm';
 
 type Props = {
@@ -36,6 +36,8 @@ export function SaneparScreen({ onVoltar }: Props) {
       <SaneparForm onSalva={carregar} />
 
       <HistoricoSanepar leituras={leituras} onExcluir={excluir} />
+
+      <RegraCalculoConsumo />
     </ScrollView>
   );
 }
