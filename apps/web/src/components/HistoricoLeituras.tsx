@@ -106,7 +106,7 @@ function LinhaLeitura({
         {estimativa ? (
           <Text style={styles.estimativaValor}>
             {estimativa.consumoEstimado.toFixed(1)} m³, {estimativa.diasLidos} de{' '}
-            {estimativa.diasLidos + estimativa.diasRestantes} {'\n'} Média Diária{' '}
+            {estimativa.diasLidos + estimativa.diasRestantes}d {'\n'}Média Diária{' '}
             {estimativa.mediaDiaria.toFixed(1).replace('.', ',')}
           </Text>
         ) : (
