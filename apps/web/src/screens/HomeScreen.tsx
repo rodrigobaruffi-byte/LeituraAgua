@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   deleteLeitura,
   Leitura,
@@ -10,7 +10,7 @@ import {
 } from '../api';
 import { ConsumoChart } from '../components/ConsumoChart';
 import { HistoricoLeituras } from '../components/HistoricoLeituras';
-import { Indicadores } from '../components/Indicadores';
+import { EstimativaFatura, UltimaLeituraSanepar } from '../components/Indicadores';
 import { NovaLeituraForm } from '../components/NovaLeituraForm';
 
 type Props = {
@@ -54,13 +54,11 @@ export function HomeScreen({ onAbrirSanepar }: Props) {
         </Text>
       </View>
 
-      <Indicadores leituras={leituras} leiturasSanepar={leiturasSanepar} />
-
-      <Pressable style={styles.botaoSanepar} onPress={onAbrirSanepar}>
-        <Text style={styles.botaoSaneparTexto}>Leitura Sanepar</Text>
-      </Pressable>
+      <EstimativaFatura leituras={leituras} leiturasSanepar={leiturasSanepar} />
 
       <NovaLeituraForm onCriada={carregar} />
+
+      <UltimaLeituraSanepar leiturasSanepar={leiturasSanepar} onAbrirSanepar={onAbrirSanepar} />
 
       <ConsumoChart leituras={leituras} leiturasSanepar={leiturasSanepar} />
 
@@ -79,14 +77,4 @@ const styles = StyleSheet.create({
   cabecalho: { gap: 4, marginBottom: 4 },
   titulo: { fontSize: 22, fontWeight: '700', color: '#18181b' },
   subtitulo: { fontSize: 13, color: '#71717a' },
-  botaoSanepar: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#d4d4d8',
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    backgroundColor: '#f4f4f5',
-  },
-  botaoSaneparTexto: { color: '#18181b', fontWeight: '500' },
 });

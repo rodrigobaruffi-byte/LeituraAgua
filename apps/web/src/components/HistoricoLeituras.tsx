@@ -34,7 +34,7 @@ export function HistoricoLeituras({ leituras, leiturasSanepar, fotos, onExcluir 
         <Text style={[styles.celula, styles.cabecalho]}>Leitura (m³)</Text>
         <Text style={[styles.celula, styles.cabecalho]}>Foto</Text>
         <Text style={[styles.celula, styles.cabecalho]}>Consumo diário</Text>
-        <Text style={[styles.celula, styles.cabecalho, { flex: 1.3 }]}>Estimativa ciclo</Text>
+        <Text style={[styles.celula, styles.cabecalho, { flex: 2 }]}>Estimativa ciclo</Text>
         <Text style={[styles.celula, styles.cabecalho]}> </Text>
       </View>
 
@@ -73,7 +73,7 @@ function LinhaLeitura({
 
   return (
     <View style={styles.linha}>
-      <Text style={[styles.celula, { flex: 1.2 }]}>{leitura.dataleitura}</Text>
+      <Text style={[styles.celula, { flex: 1.2 }]}>{dataMesDia(leitura.dataleitura)}</Text>
       <Text style={styles.celula}>{Number(leitura.valorleitura).toFixed(2)}</Text>
       <View style={styles.celula}>
         {foto ? (
@@ -102,19 +102,13 @@ function LinhaLeitura({
       <Text style={styles.celula}>
         {mediaDiaria !== null ? mediaDiaria.toFixed(2) : '—'}
       </Text>
-      <View style={[styles.celula, { flex: 1.3 }]}>
+      <View style={[styles.celula, { flex: 2 }]}>
         {estimativa ? (
-          <>
-            <Text style={styles.estimativaValor}>
-              {estimativa.consumoEstimado.toFixed(2)} m³
-            </Text>
-            <Text style={styles.estimativaDetalhe}>
-              {estimativa.diasLidos}d lidos · {estimativa.diasRestantes}d restantes
-            </Text>
-            <Text style={styles.estimativaDetalhe}>
-              até {dataCurta(estimativa.dataProximaLeitura)}
-            </Text>
-          </>
+          <Text style={styles.estimativaValor}>
+            {estimativa.consumoEstimado.toFixed(2)} m³, {estimativa.diasLidos}d de{' '}
+            {estimativa.diasLidos + estimativa.diasRestantes}. md{' '}
+            {estimativa.mediaDiaria.toFixed(2).replace('.', ',')}
+          </Text>
         ) : (
           <Text style={styles.vazioInline}>—</Text>
         )}
@@ -128,10 +122,10 @@ function LinhaLeitura({
   );
 }
 
-/** '2026-09-15' -> '15/09' */
-function dataCurta(iso: string): string {
+/** '2026-09-15' -> '09/15' */
+function dataMesDia(iso: string): string {
   const [, mes, dia] = iso.split('-');
-  return `${dia}/${mes}`;
+  return `${mes}/${dia}`;
 }
 
 const styles = StyleSheet.create({

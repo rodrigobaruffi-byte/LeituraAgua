@@ -1,17 +1,15 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Leitura, LeituraSanepar } from '../api';
 import { calcularValorFatura, estimarConsumoProximaLeitura } from '../consumo';
 
-type Props = {
+type EstimativaProps = {
   leituras: Leitura[];
   leiturasSanepar: LeituraSanepar[];
 };
 
-export function Indicadores({ leituras, leiturasSanepar }: Props) {
-  const ultimaSanepar = [...leiturasSanepar].sort((a, b) =>
-    b.datasanepar.localeCompare(a.datasanepar),
-  )[0];
+export function EstimativaFatura({ leituras, leiturasSanepar }: EstimativaProps) {
+  const ultimaSanepar = ultimaDaSanepar(leiturasSanepar);
 
   const ultimaLeitura = [...leituras].sort((a, b) =>
     b.dataleitura.localeCompare(a.dataleitura),
@@ -37,12 +35,12 @@ export function Indicadores({ leituras, leiturasSanepar }: Props) {
   const fatura = estimativa ? calcularValorFatura(Math.floor(estimativa.consumoEstimado)) : null;
 
   return (
-    <View style={styles.container}>
-      <Grupo
-        titulo="Estimativa próxima fatura"
-        subtitulo={estimativa ? `Leitura prevista em ${dataCurta(estimativa.dataProximaLeitura)}` : undefined}
-        destaque
-      >
+    <Grupo
+      titulo="Estimativa próxima fatura"
+      subtitulo={estimativa ? `Leitura prevista em ${dataCurta(estimativa.dataProximaLeitura)}` : undefined}
+      destaque
+    >
+      <View style={styles.linha}>
         <Cartao
           rotulo="Consumo"
           valor={estimativa ? `${estimativa.consumoEstimado.toFixed(2)} m³` : '—'}
@@ -56,8 +54,7 @@ export function Indicadores({ leituras, leiturasSanepar }: Props) {
           }
           destaque
         />
-      </Grupo>
-
+      </View>
       <View style={styles.linha}>
         <Cartao rotulo="Leituras realizadas" valor={String(leituras.length)} />
         <Cartao
@@ -65,16 +62,36 @@ export function Indicadores({ leituras, leiturasSanepar }: Props) {
           valor={consumoAteHoje !== null ? `${consumoAteHoje.toFixed(2)} m³` : '—'}
         />
       </View>
+    </Grupo>
+  );
+}
 
-      <Grupo titulo="Última Leitura Sanepar">
+type UltimaSaneparProps = {
+  leiturasSanepar: LeituraSanepar[];
+  onAbrirSanepar: () => void;
+};
+
+export function UltimaLeituraSanepar({ leiturasSanepar, onAbrirSanepar }: UltimaSaneparProps) {
+  const ultimaSanepar = ultimaDaSanepar(leiturasSanepar);
+
+  return (
+    <Grupo titulo="Última Leitura Sanepar">
+      <View style={styles.linha}>
         <Cartao rotulo="Data" valor={ultimaSanepar ? ultimaSanepar.datasanepar : '—'} />
         <Cartao
           rotulo="Leitura"
           valor={ultimaSanepar ? `${Number(ultimaSanepar.valorsanepar).toFixed(2)} m³` : '—'}
         />
-      </Grupo>
-    </View>
+      </View>
+      <Pressable style={styles.botaoSanepar} onPress={onAbrirSanepar}>
+        <Text style={styles.botaoSaneparTexto}>Leitura Sanepar</Text>
+      </Pressable>
+    </Grupo>
   );
+}
+
+function ultimaDaSanepar(leiturasSanepar: LeituraSanepar[]): LeituraSanepar | undefined {
+  return [...leiturasSanepar].sort((a, b) => b.datasanepar.localeCompare(a.datasanepar))[0];
 }
 
 function Grupo({
@@ -94,7 +111,7 @@ function Grupo({
         <Text style={styles.grupoTitulo}>{titulo}</Text>
         {subtitulo ? <Text style={styles.grupoSubtitulo}>{subtitulo}</Text> : null}
       </View>
-      <View style={styles.linha}>{children}</View>
+      {children}
     </View>
   );
 }
@@ -143,6 +160,16 @@ const styles = StyleSheet.create({
   },
   grupoDestaque: { borderColor: '#bae6fd' },
   grupoCabecalho: { gap: 2 },
+  botaoSanepar: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#d4d4d8',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: '#f4f4f5',
+  },
+  botaoSaneparTexto: { color: '#18181b', fontWeight: '500' },
   grupoTitulo: { fontSize: 14, fontWeight: '600', color: '#18181b' },
   grupoSubtitulo: { fontSize: 12, color: '#71717a' },
   cartao: {
