@@ -70,6 +70,7 @@ function LinhaLeitura({
   onExcluir: () => void;
 }) {
   const [ampliada, setAmpliada] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
 
   return (
     <View style={styles.linha}>
@@ -106,7 +107,7 @@ function LinhaLeitura({
         {estimativa ? (
           <Text style={styles.estimativaValor}>
             {estimativa.consumoEstimado.toFixed(1)} m³, {estimativa.diasLidos} de{' '}
-            {estimativa.diasLidos + estimativa.diasRestantes}d {'\n'}Média Diária{' '}
+            {estimativa.diasLidos + estimativa.diasRestantes}d {'\n'}Méd Diária{' '}
             {estimativa.mediaDiaria.toFixed(1).replace('.', ',')}
           </Text>
         ) : (
@@ -114,9 +115,42 @@ function LinhaLeitura({
         )}
       </View>
       <View style={styles.celula}>
-        <Pressable onPress={onExcluir}>
-          <Text style={styles.excluir}>Excluir</Text>
+        <Pressable
+          onPress={() => setConfirmando(true)}
+          style={styles.botaoExcluir}
+          accessibilityLabel="Excluir leitura"
+        >
+          <Text style={styles.excluirX}>✕</Text>
         </Pressable>
+        <Modal
+          visible={confirmando}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setConfirmando(false)}
+        >
+          <View style={styles.confirmaFundo}>
+            <View style={styles.confirmaCaixa}>
+              <Text style={styles.confirmaTexto}>
+                Excluir a leitura de {dataMesDia(leitura.dataleitura)} (
+                {Number(leitura.valorleitura).toFixed(2)} m³)?
+              </Text>
+              <View style={styles.confirmaBotoes}>
+                <Pressable style={styles.botaoCancelar} onPress={() => setConfirmando(false)}>
+                  <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.botaoConfirmar}
+                  onPress={() => {
+                    setConfirmando(false);
+                    onExcluir();
+                  }}
+                >
+                  <Text style={styles.botaoConfirmarTexto}>Excluir</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );
@@ -168,5 +202,38 @@ const styles = StyleSheet.create({
   },
   fotoModal: { width: '100%', height: '85%' },
   modalFechar: { color: '#d4d4d8', fontSize: 12 },
-  excluir: { color: '#b91c1c', fontSize: 13 },
+  botaoExcluir: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4 },
+  excluirX: { color: '#dc2626', fontSize: 18, fontWeight: '700' },
+  confirmaFundo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  confirmaCaixa: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    gap: 16,
+  },
+  confirmaTexto: { fontSize: 15, color: '#18181b' },
+  confirmaBotoes: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  botaoCancelar: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d4d4d8',
+  },
+  botaoCancelarTexto: { fontSize: 14, color: '#18181b' },
+  botaoConfirmar: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: '#dc2626',
+  },
+  botaoConfirmarTexto: { fontSize: 14, color: '#fff', fontWeight: '600' },
 });
