@@ -105,9 +105,9 @@ function LinhaLeitura({
       <View style={[styles.celula, { flex: 2 }]}>
         {estimativa ? (
           <Text style={styles.estimativaValor}>
-            {estimativa.consumoEstimado.toFixed(2)} m³, {estimativa.diasLidos}d de{' '}
-            {estimativa.diasLidos + estimativa.diasRestantes}. md{' '}
-            {estimativa.mediaDiaria.toFixed(2).replace('.', ',')}
+            {estimativa.consumoEstimado.toFixed(1)} m³, {estimativa.diasLidos} de{' '}
+            {estimativa.diasLidos + estimativa.diasRestantes} {'\n'} Média Diária{' '}
+            {estimativa.mediaDiaria.toFixed(1).replace('.', ',')}
           </Text>
         ) : (
           <Text style={styles.vazioInline}>—</Text>
